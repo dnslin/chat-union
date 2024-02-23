@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 )
 
 type Server struct {
@@ -59,6 +60,10 @@ func (sever *Server) Handler(conn net.Conn) {
 	user := NewUser(conn, sever)
 	// 用户上线
 	user.Online()
+
+	// 监听用户是否活跃的channel
+	isLive := make(chan bool)
+
 	go func() {
 		buf := make([]byte, 4096)
 		for {
@@ -76,11 +81,26 @@ func (sever *Server) Handler(conn net.Conn) {
 			msg := string(buf[:n-1])
 			// 用户处理消息
 			user.DoMessage(msg)
-
+			// 用户活跃
+			isLive <- true
 		}
 	}()
 	// 阻塞当前 不然 协程就死了
-	select {}
+	for {
+		select {
+		case <-isLive:
+			// 当前用户是活跃的，重置定时器
+			// 不做任何事情，为了激活select，更新下面的定时器
+		case <-time.After(time.Hour * 1):
+			// 已经超时
+			// 将当前用户强制下线
+			user.SendMessage("你被踢下线了")
+			// 销毁用户
+			close(user.C)
+			_ = conn.Close()
+			return
+		}
+	}
 }
 
 // BroadCast 广播消息
