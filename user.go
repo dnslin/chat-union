@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net"
 )
 
@@ -35,7 +34,7 @@ func (user *User) ListenMessage() {
 		// 写回数据
 		_, err := user.conn.Write([]byte(msg + "\n"))
 		if err != nil {
-			fmt.Printf("用户%s消息发送异常...错误信息 %s:\n", user.Name, err)
+			// todo 用户下线会报错
 			continue
 		}
 	}
