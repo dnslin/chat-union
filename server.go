@@ -75,7 +75,7 @@ func (sever *Server) Handler(conn net.Conn) {
 			// 提取用户消息
 			msg := string(buf[:n-1])
 			// 用户处理消息
-			user.SendMessage(msg)
+			user.DoMessage(msg)
 
 		}
 	}()

@@ -13,8 +13,25 @@ type Command interface {
 // RenameCommand 是一个具体的命令
 type RenameCommand struct{}
 
-func (c *RenameCommand) Execute(args []string, _ *User) {
+func (c *RenameCommand) Execute(args []string, user *User) {
 	fmt.Println("执行重命名操作，参数：", args)
+	if len(args) == 0 {
+		user.SendMessage("请指定用户名")
+		return
+	}
+	// 判断 用户名是否存在
+	if _, ok := user.server.OnlineMap[args[0]]; ok {
+		user.SendMessage("当前用户名已被使用")
+	}
+	// 修改用户名
+	user.server.mapLock.Lock()
+	delete(user.server.OnlineMap, user.Name)
+	user.server.OnlineMap[args[0]] = user
+	user.server.mapLock.Unlock()
+	user.Name = args[0]
+	// 发送更新成功消息
+	user.SendMessage("用户名更新成功！")
+
 }
 
 // MessageCommand 是另一个具体的命令
@@ -28,7 +45,7 @@ func (c *MessageCommand) Execute(args []string, _ *User) {
 type NormalMessageCommand struct{}
 
 func (c *NormalMessageCommand) Execute(args []string, user *User) {
-	user.server.BroadCast(user, strings.Join(args, " "))
+	user.SendMessage(strings.Join(args, " "))
 }
 
 // CommandParser 负责解析命令并执行
@@ -42,11 +59,10 @@ type WhoCommand struct {
 
 func (c *WhoCommand) Execute(_ []string, user *User) {
 	user.server.mapLock.Lock()
-	defer user.server.mapLock.Unlock()
-
 	for _, user := range user.server.OnlineMap {
-		user.server.BroadCast(user, "在线用户："+user.Name)
+		user.SendMessage("在线用户：" + user.Name + "\nIP地址: " + user.Addr)
 	}
+	user.server.mapLock.Unlock()
 }
 
 func NewCommandParser() *CommandParser {
@@ -68,13 +84,13 @@ func (p *CommandParser) ParseAndExecute(message string, user *User) {
 	if prefix := message[:1]; prefix == "@" || prefix == "#" {
 		content := strings.Fields(message[1:])
 		if len(content) == 0 {
-			fmt.Println("指令格式错误")
+			user.SendMessage("指令格式错误")
 			return
 		}
 
 		command, ok := p.commands[content[0]]
 		if !ok {
-			fmt.Println("未知的指令:", content[0])
+			user.SendMessage("未知的指令:" + content[0])
 			return
 		}
 
