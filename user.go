@@ -63,5 +63,8 @@ func (user *User) Offline() {
 
 // SendMessage 发送消息
 func (user *User) SendMessage(msg string) {
-	user.server.BroadCast(user, msg)
+	// 这里做 消息指令功能 例如: 指定 #为系统功能 例如: #rename 张三 指定 @为私聊功能 例如: @张三|你好
+	// 检查消息是否以@开头
+	parser := NewCommandParser()
+	parser.ParseAndExecute(msg, user)
 }
