@@ -37,8 +37,13 @@ func (c *RenameCommand) Execute(args []string, user *User) {
 // MessageCommand 是另一个具体的命令
 type MessageCommand struct{}
 
-func (c *MessageCommand) Execute(args []string, _ *User) {
+func (c *MessageCommand) Execute(args []string, user *User) {
 	fmt.Println("执行消息发送操作，参数：", args)
+	remoteName := args[0]
+	if len(remoteName) == 0 {
+		user.SendMessage("请指定私聊对象和私聊内容")
+	}
+
 }
 
 // NormalMessageCommand 处理普通消息
@@ -50,7 +55,9 @@ func (c *NormalMessageCommand) Execute(args []string, user *User) {
 
 // CommandParser 负责解析命令并执行
 type CommandParser struct {
-	commands map[string]Command
+	atCommands    map[string]Command // 以@开头的指令集合
+	hashCommands  map[string]Command // 以#开头的指令集合
+	normalCommand Command            // 处理普通消息的命令
 }
 
 // WhoCommand 是另一个具体的命令
@@ -67,11 +74,16 @@ func (c *WhoCommand) Execute(_ []string, user *User) {
 
 func NewCommandParser() *CommandParser {
 	return &CommandParser{
-		commands: map[string]Command{
-			"rename":  &RenameCommand{},
+		atCommands: map[string]Command{
+			// "@标识符"的指令在这里注册
 			"message": &MessageCommand{},
-			"who":     &WhoCommand{},
 		},
+		hashCommands: map[string]Command{
+			// "#标识符"的指令在这里注册
+			"rename": &RenameCommand{},
+			"who":    &WhoCommand{},
+		},
+		normalCommand: &NormalMessageCommand{}, // 处理普通消息
 	}
 }
 
@@ -81,22 +93,30 @@ func (p *CommandParser) ParseAndExecute(message string, user *User) {
 		return
 	}
 
-	if prefix := message[:1]; prefix == "@" || prefix == "#" {
-		content := strings.Fields(message[1:])
-		if len(content) == 0 {
-			user.SendMessage("指令格式错误")
-			return
-		}
-
-		command, ok := p.commands[content[0]]
-		if !ok {
-			user.SendMessage("未知的指令:" + content[0])
-			return
-		}
-
-		command.Execute(content[1:], user)
-	} else {
-		// 处理普通消息
-		(&NormalMessageCommand{}).Execute(strings.Fields(message), user)
+	prefix := message[:1]
+	content := strings.Fields(message[1:])
+	if len(content) == 0 {
+		user.SendMessage("指令格式错误")
+		return
 	}
+
+	var command Command
+	var ok bool
+
+	switch prefix {
+	case "@":
+		command, ok = p.atCommands[content[0]]
+	case "#":
+		command, ok = p.hashCommands[content[0]]
+	default:
+		p.normalCommand.Execute(strings.Fields(message), user)
+		return
+	}
+
+	if !ok {
+		user.SendMessage("未知的指令:" + content[0])
+		return
+	}
+
+	command.Execute(content[1:], user)
 }
