@@ -16,7 +16,7 @@ type RenameCommand struct{}
 func (c *RenameCommand) Execute(args []string, user *User) {
 	fmt.Println("执行重命名操作，参数：", args)
 	if len(args) == 0 {
-		user.SendMessage("请指定用户名")
+		user.SendMessage("请指定用户名! ")
 		return
 	}
 	// 判断 用户名是否存在
@@ -39,8 +39,7 @@ type MessageCommand struct{}
 
 func (c *MessageCommand) Execute(args []string, user *User) {
 	fmt.Println("执行消息发送操作，参数：", args)
-	remoteName := args[0]
-	if len(remoteName) == 0 {
+	if len(args) == 0 {
 		user.SendMessage("请指定私聊对象和私聊内容")
 	}
 
