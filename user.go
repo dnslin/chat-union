@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/TwiN/go-color"
 	"net"
 )
 
@@ -64,9 +65,9 @@ func (user *User) Offline() {
 
 // SendMessage 发送消息
 func (user *User) SendMessage(msg string) {
-	_, err := user.conn.Write([]byte(msg + "\n"))
+	_, err := user.conn.Write([]byte(color.Ize(color.Red, msg+"\n")))
 	if err != nil {
-		fmt.Println("发送消息异常...:", err)
+		fmt.Println("发送消息异常... 链接已经断开了:")
 		return
 	}
 }
