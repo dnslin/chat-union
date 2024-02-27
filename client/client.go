@@ -3,7 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/TwiN/go-color"
+	"io"
 	"net"
+	"os"
 )
 
 // Client 构建 client
@@ -50,31 +53,57 @@ func (client *Client) Run() {
 		if client.flag >= 0 && client.flag <= 3 {
 			switch client.flag {
 			case 1:
-				fmt.Println("进入公聊模式")
+				fmt.Println(color.Ize(color.Blue, "####进入公聊模式####"))
 				break
 			case 2:
-				fmt.Println("进入私聊模式")
+				fmt.Println(color.Ize(color.Blue, "####进入私聊模式####"))
 				break
 			case 3:
-				fmt.Println("更新用户名")
+				client.updateName()
 				break
 			case 0:
-				fmt.Println("退出")
+				fmt.Println(color.Ize(color.Red, "退出"))
 				break
 			}
 		} else {
-			fmt.Println("请输入合法的数字")
+			fmt.Println(color.Ize(color.Red, "请输入合法的数字"))
 		}
+	}
+}
+
+// 更新用户名
+func (client *Client) updateName() bool {
+	fmt.Println(color.Ize(color.Blue, ">>>>>请输入用户名:"))
+	_, err2 := fmt.Scanln(&client.Name)
+	if err2 != nil {
+		return false
+	}
+	sendMsg := "#rename " + client.Name + "\n"
+	_, err := client.conn.Write([]byte(sendMsg))
+	if err != nil {
+		fmt.Println("conn.Write 发生异常...", err)
+		return false
+	}
+	return true
+
+}
+
+// DealResponse 处理服务端返回的消息
+func (client *Client) DealResponse() {
+	// 一旦client.conn有数据，就会执行下面的代码
+	_, err := io.Copy(os.Stdout, client.conn)
+	if err != nil {
+		return
 	}
 }
 
 // 定义菜单
 func (client *Client) menu() bool {
 	var key int
-	fmt.Println("1. 公聊模式")
-	fmt.Println("2. 私聊模式")
-	fmt.Println("3. 更新用户名")
-	fmt.Println("0. 退出")
+	fmt.Println(color.Ize(color.Cyan, "1. 公聊模式"))
+	fmt.Println(color.Ize(color.Cyan, "2. 私聊模式"))
+	fmt.Println(color.Ize(color.Cyan, "3. 更新用户名"))
+	fmt.Println(color.Ize(color.Cyan, "0. 退出"))
 	_, err := fmt.Scanln(&key)
 	if err != nil {
 		return false
@@ -93,7 +122,8 @@ func main() {
 		return
 	}
 	fmt.Println("链接服务器成功...")
-
+	// 处理 server 返回的消息
+	go client.DealResponse()
 	// 启动客户端业务
 	client.Run()
 }

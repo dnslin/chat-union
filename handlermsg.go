@@ -30,7 +30,7 @@ func (c *RenameCommand) Execute(args []string, user *User) {
 	user.server.mapLock.Unlock()
 	user.Name = args[0]
 	// 发送更新成功消息
-	user.SendMessage("用户名更新成功！")
+	user.SendMessage(fmt.Sprintf("用户名更新成功！您的用户名是 %s", user.Name))
 
 }
 
